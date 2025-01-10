@@ -10,15 +10,10 @@ data State = State
             }
 
 instance Show State where
-    show state = "State { bounds = " ++ show (bounds state) ++" }"
+    show state = "State { bounds = " ++ show (bounds state) ++ " }"
 
-initialState = State {
-        bounds = (1,2),
-        gCum = g,
-        alphaCum = alpha
-    }    
+mu = 100 -- Shear modulus
 
-mu = 100
 growthRate :: (Double, Double) 
            -> Double
 growthRate bounds = 
@@ -31,9 +26,10 @@ g :: (Double, Double) -- inner radius in reference configuration
   -> Double -- point in current configuration
 g bounds x = 1 + (growthRate bounds) * (x - (fst bounds))
 
+-- radius in spatial configuration
 r :: (Double, Double) -- lower bound in reference configuration
   -> Double -- point in reference configuration
-  -> ((Double, Double) -> Double -> Double) -- g
+  -> Growth
   -> Double -- a
   -> Double
 r bounds x g a = 
@@ -41,23 +37,25 @@ r bounds x g a =
         lowerBound = fst bounds
     in (a**3 + 3*(quadrature64 integrand lowerBound x))**(1/3)
 
+-- elastic strain
 alpha :: (Double, Double) --lowerBound
       -> Double -- x
-      -> ((Double, Double) -> Double -> Double) -- g
+      -> Growth
       -> Double -- a
       -> Double
 alpha bounds x g a = (r bounds x g a)/(x * (g bounds x))
 
+-- stress in spatial configuration (Cauchy stress)
 t :: (Double, Double) -- lower bound in reference configuration
   -> Double -- point in reference configuration
-  -> ((Double, Double) -> Double -> Double) -- g
-  -> ((Double, Double) -> Double -> ((Double, Double)  -> Double -> Double) -> Double -> Double) -- alpha
+  -> Growth
+  -> Alpha
   -> Double -- lower bound in current configuration
   -> Double -- stress at a point in current configuration
 t bounds x g alpha a = 
-    let integrand' s = 2*mu/s*((alpha bounds s g a)**(-1) - (alpha bounds s g a)**(-7))
+    let integrand s = 2*mu/s*((alpha bounds s g a)**(-1) - (alpha bounds s g a)**(-7))
         lowerBound = fst bounds
-    in quadrature64 integrand' lowerBound x
+    in quadrature64 integrand lowerBound x
 
 updateState :: State -> State
 updateState state = 
@@ -71,15 +69,6 @@ updateState state =
         alphaCum = \x1 x2 x3 x4 -> (alpha (bounds state) upperBound g a) * ((alpha x1 x2 x3 x4))
     }
 
-fst' :: (a, b, c) -> a
-fst' (a, _, _) = a
-
-volume :: (Double, Double) -> Double 
-volume (inner, outer) = 4/3*pi*(outer^3 - inner^3)
-
-volumeRatio :: (Double, Double) -> (Double, Double) -> Double
-volumeRatio (inner, outer) (innerNew, outerNew) = (volume (innerNew, outerNew)) / (volume (inner, outer))
-
 main :: IO ()
 main = do
     let initialState = State {
@@ -87,6 +76,6 @@ main = do
         gCum = g,
         alphaCum = alpha
     }    
-    let tenSteps = take 9 $ iterate updateState initialState
+    let tenSteps = take 8 $ iterate updateState initialState
 
     print $ map bounds tenSteps

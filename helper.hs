@@ -155,3 +155,8 @@ secant epsilon f guesses =
        then newGuess
        else secant epsilon f (newGuess, guess1)
 
+volume :: (Double, Double) -> Double 
+volume (inner, outer) = 4/3*pi*(outer^3 - inner^3)
+
+volumeRatio :: (Double, Double) -> (Double, Double) -> Double
+volumeRatio (inner, outer) (innerNew, outerNew) = (volume (innerNew, outerNew)) / (volume (inner, outer))
