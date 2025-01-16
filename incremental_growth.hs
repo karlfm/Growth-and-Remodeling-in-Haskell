@@ -63,10 +63,12 @@ updateState state =
         alpha = alphaCum state
         g = gCum state
         a = secant 1e-14 (t (bounds state) upperBound g alpha) (bounds state)
+        oldGCum = g (bounds state) upperBound
+        oldAlphaCum = alpha (bounds state) upperBound g a
     in state {
         bounds = (a, r (bounds state) upperBound g a),
-        gCum = \s x -> (g (bounds state) upperBound) * g s x,
-        alphaCum = \x1 x2 x3 x4 -> (alpha (bounds state) upperBound g a) * ((alpha x1 x2 x3 x4))
+        gCum = \s x -> oldGCum * g s x,
+        alphaCum = \x1 x2 x3 x4 -> oldAlphaCum * (alpha x1 x2 x3 x4)
     }
 
 main :: IO ()
@@ -76,6 +78,6 @@ main = do
         gCum = g,
         alphaCum = alpha
     }    
-    let tenSteps = take 8 $ iterate updateState initialState
+    let steps = take 6 $ iterate updateState initialState
 
-    print $ map bounds tenSteps
+    print $ map bounds steps
